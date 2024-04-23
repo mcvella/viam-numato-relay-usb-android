@@ -1,0 +1,23 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        mavenLocal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        mavenLocal()
+        maven {
+            name = "Snapshots"
+            url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+        }
+    }
+}
+
+rootProject.name = "Viam Android Module for interfacing with Numato USB Relays"
+include ':module'
