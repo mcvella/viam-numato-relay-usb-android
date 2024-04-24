@@ -9,11 +9,12 @@ plugins {
 }
 
 module {
-    mainEntryClass = 'com.mcvella.numato_relay_usb_android.Main'
+    mainEntryClass = 'com.mcvella.numatoRelayUsbAndroid.Main'
+    executeInProcess = true
 }
 
 android {
-    namespace 'com.mcvella.numato_relay_usb_android'
+    namespace 'com.mcvella.numatoRelayUsbAndroid'
     compileSdk 34
 
     defaultConfig {
