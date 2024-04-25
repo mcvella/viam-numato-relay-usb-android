@@ -1,4 +1,4 @@
-package com.example.mymodule;
+package com.mcvella.numatoRelayUsbAndroid;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
