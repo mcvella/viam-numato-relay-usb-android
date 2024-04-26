@@ -4,8 +4,16 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.viam.common.v1.Common;
 import com.viam.sdk.android.module.Module;
+import android.Manifest;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.content.Context;
+import android.content.Intent;
+import android.app.PendingIntent;
+import androidx.core.app.ActivityCompat;
+import android.content.pm.PackageManager;
+
 
 import com.viam.sdk.core.component.generic.Generic;
 import com.viam.sdk.core.resource.Model;
@@ -29,6 +37,12 @@ import viam.app.v1.Robot;
 public class Main {
 
   private static UsbManager usb;
+  private static Context cxt;
+  private static final String ACTION_USB_PERMISSION = "com.android.usb.USB_PERMISSION";
+  private static final String[] PERMISSIONS = {
+          Manifest.permission.ACCESS_COARSE_LOCATION,
+          Manifest.permission.ACCESS_FINE_LOCATION
+  };
 
   public static void main(final String[] args) {
 
@@ -39,6 +53,7 @@ public class Main {
     );
     final Module module = new Module(args);
     usb = (UsbManager) module.getParentContext().getSystemService(Context.USB_SERVICE);
+    cxt = module.getParentContext();
     module.start();
   }
 
@@ -53,14 +68,53 @@ public class Main {
       super(config.getName());
       List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usb);
       if (availableDrivers.isEmpty()) {
-        LOGGER.severe("No serial USB devices found");
+        LOGGER.severe("No serial USB devices found, restart module after connecting a device");
         return;
       }
-      LOGGER.warning("USB devices:" + Arrays.toString(availableDrivers.toArray()));
+      LOGGER.warning("USB devices found:" + Arrays.toString(availableDrivers.toArray()));
+
+      UsbSerialDriver driver;
+      try {
+          driver = availableDrivers.get(0);
+      } catch (Exception ignored) {
+          LOGGER.severe("No correct USB serial devices, could not connect");
+          return;
+      }
+
+      // Check and grant permissions
+      if (!checkAndRequestPermission(usb, driver.getDevice())) {
+        LOGGER.severe("Please restart and grant permission");
+        return;
+      }
     }
 
     public static Set<String> validateConfig(final Robot.ComponentConfig ignored) {
       return new HashSet<>();
+    }
+
+    private boolean checkAndRequestPermission(UsbManager manager, UsbDevice usbDevice) {
+      // Check if permissions already exists
+      if (hasPermissions(cxt.getApplicationContext(), PERMISSIONS)
+              && manager.hasPermission(usbDevice))
+          return true;
+      else {
+          // Request USB permission
+          PendingIntent pendingIntent = PendingIntent.getBroadcast(cxt.getApplicationContext(),
+                  0, new Intent(ACTION_USB_PERMISSION), 0);
+          manager.requestPermission(usbDevice, pendingIntent);
+          return false;
+      }
+    }
+    public boolean hasPermissions(Context context, String... permissions) {
+      if (context != null && permissions != null) {
+          for (String permission : permissions) {
+              if (ActivityCompat.checkSelfPermission(context, permission)
+                      != PackageManager.PERMISSION_GRANTED) {
+                  return false;
+              }
+          }
+      }
+      return true;
     }
 
     @Override
