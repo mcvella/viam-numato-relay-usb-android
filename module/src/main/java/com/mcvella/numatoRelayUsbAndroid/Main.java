@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Arrays;
 import java.util.logging.Logger;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -61,14 +63,24 @@ public class Main {
 
     public static final Model MODEL = new Model(new ModelFamily("mcvella", "generic"), "numato-relay-usb-android");
     private static final Logger LOGGER = Logger.getLogger(NumatoRelay.class.getName());
-    private UsbSerialPort port;
+    private UsbSerialPort relay;
 
     public NumatoRelay(Robot.ComponentConfig config,
         Map<Common.ResourceName, Resource> dependencies) {
       super(config.getName());
+
+      if ( relay != null) {
+        try {
+          relay.close();
+          relay = null;
+        } catch (IOException e) {
+          LOGGER.warning("Could not disconnect Numato relay device; perhaps was not already connected");
+        }
+      }
+
       List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usb);
       if (availableDrivers.isEmpty()) {
-        LOGGER.severe("No serial USB devices found, restart module after connecting a device");
+        LOGGER.severe("No serial USB devices found, restart module after connecting a Numato relay device");
         return;
       }
       LOGGER.warning("USB devices found:" + Arrays.toString(availableDrivers.toArray()));
@@ -77,15 +89,34 @@ public class Main {
       try {
           driver = availableDrivers.get(0);
       } catch (Exception ignored) {
-          LOGGER.severe("No correct USB serial devices, could not connect");
+          LOGGER.severe("No correct Numato USB serial devices, could not connect");
           return;
       }
 
       // Check and grant permissions
       if (!checkAndRequestPermission(usb, driver.getDevice())) {
-        LOGGER.severe("Please restart and grant permission");
+        LOGGER.severe("Please restart and grant permission to connect to Numato USB serial device");
         return;
       }
+
+      // Open USB device
+      UsbDeviceConnection connection = usb.openDevice(driver.getDevice());
+      if (connection == null) {
+          LOGGER.severe("Error opening Numato USB device");
+          return;
+      }
+
+      try {
+        // Open first available serial port
+        relay = driver.getPorts().get(0);
+        relay.open(connection);
+        relay.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+        LOGGER.info("Successfully connected to Numato relay device");
+      } catch (IOException e) {
+        LOGGER.severe("Failure connecting to detected Numato relay device");
+      }
+
     }
 
     public static Set<String> validateConfig(final Robot.ComponentConfig ignored) {
@@ -102,7 +133,14 @@ public class Main {
           PendingIntent pendingIntent = PendingIntent.getBroadcast(cxt.getApplicationContext(),
                   0, new Intent(ACTION_USB_PERMISSION), 0);
           manager.requestPermission(usbDevice, pendingIntent);
-          return false;
+          
+          // this is a hack and means permissions must be accepted within 10 seconds of being asked
+          try {
+            Thread.sleep(10000);
+          } catch (InterruptedException e) {
+            return false;
+          }
+          return true;
       }
     }
     public boolean hasPermissions(Context context, String... permissions) {
@@ -121,16 +159,38 @@ public class Main {
     public Struct doCommand(Map<String, Value> command) {
       final Struct.Builder builder = Struct.newBuilder();
       String serialCommand = "";
+      String type = "write";
       if (command.containsKey("on")) {
         serialCommand = "relay on " + command.get("on").getStringValue() + "\r";
       } else if (command.containsKey("off")) {
         serialCommand = "relay off " + command.get("off").getStringValue() + "\r";
       } else if (command.containsKey("read")) {
         serialCommand = "relay read " + command.get("read").getStringValue() + "\r";
+        type = "read";
       } else if (command.containsKey("reset")) {
         serialCommand = "reset\r";
       }
-      return builder.putFields("serial command", Value.newBuilder().setStringValue(serialCommand).build()).build();
+
+      if (type == "write") {
+        try {
+          relay.write("\r".getBytes(), 100);
+          relay.write(serialCommand.getBytes(), 100);
+          return builder.putFields("serial command written", Value.newBuilder().setStringValue(serialCommand).build()).build();
+        } catch (IOException e) {
+          return builder.putFields("serial write error sending", Value.newBuilder().setStringValue(serialCommand).build()).build();
+        }
+      } else {
+        byte[] resp = new byte[64];
+        try {
+          relay.write("\r".getBytes(), 100);
+          relay.write(serialCommand.getBytes(), 100);
+          relay.read(resp, 100);
+        } catch (IOException e) {
+          return builder.putFields("serial write error reading", Value.newBuilder().setStringValue(serialCommand).build()).build();
+        }
+        String response = new String(resp, StandardCharsets.UTF_8);
+        return builder.putFields("serial command read", Value.newBuilder().setStringValue(response).build()).build();
+      }
     }
   }
 }
