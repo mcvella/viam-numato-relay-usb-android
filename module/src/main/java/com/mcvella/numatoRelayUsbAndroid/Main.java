@@ -69,7 +69,7 @@ public class Main {
         Map<Common.ResourceName, Resource> dependencies) {
       super(config.getName());
 
-      if ( relay != null) {
+      if ( relay != null && relay.isOpen()) {
         try {
           relay.close();
           relay = null;
@@ -78,10 +78,14 @@ public class Main {
         }
       }
 
+      openRelay();
+    }
+
+    private boolean openRelay() {
       List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usb);
       if (availableDrivers.isEmpty()) {
-        LOGGER.severe("No serial USB devices found, restart module after connecting a Numato relay device");
-        return;
+        LOGGER.severe("No serial USB devices found");
+        return false;
       }
       LOGGER.warning("USB devices found:" + Arrays.toString(availableDrivers.toArray()));
 
@@ -90,20 +94,20 @@ public class Main {
           driver = availableDrivers.get(0);
       } catch (Exception ignored) {
           LOGGER.severe("No correct Numato USB serial devices, could not connect");
-          return;
+          return false;
       }
 
       // Check and grant permissions
       if (!checkAndRequestPermission(usb, driver.getDevice())) {
-        LOGGER.severe("Please restart and grant permission to connect to Numato USB serial device");
-        return;
+        LOGGER.severe("Please try again and grant permission to connect to Numato USB serial device");
+        return false;
       }
 
       // Open USB device
       UsbDeviceConnection connection = usb.openDevice(driver.getDevice());
       if (connection == null) {
           LOGGER.severe("Error opening Numato USB device");
-          return;
+          return false;
       }
 
       try {
@@ -113,12 +117,12 @@ public class Main {
         relay.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
         LOGGER.info("Successfully connected to Numato relay device");
+        return true;
       } catch (IOException e) {
         LOGGER.severe("Failure connecting to detected Numato relay device");
+        return false;
       }
-
     }
-
     public static Set<String> validateConfig(final Robot.ComponentConfig ignored) {
       return new HashSet<>();
     }
@@ -157,6 +161,13 @@ public class Main {
 
     @Override
     public Struct doCommand(Map<String, Value> command) {
+      if (!relay.isOpen()) {
+        Boolean open = openRelay();
+        if (!open) {
+          return builder.putFields("Unable to open relay", Value.newBuilder().setStringValue("error").build()).build();
+        }
+      }
+
       final Struct.Builder builder = Struct.newBuilder();
       String serialCommand = "";
       String type = "write";
