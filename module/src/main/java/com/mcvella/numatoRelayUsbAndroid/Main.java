@@ -78,7 +78,6 @@ public class Main {
         }
       }
 
-      openRelay();
     }
 
     private boolean openRelay() {
@@ -161,14 +160,19 @@ public class Main {
 
     @Override
     public Struct doCommand(Map<String, Value> command) {
-      if (!relay.isOpen()) {
+      final Struct.Builder builder = Struct.newBuilder();
+
+      if (relay == null || relay.getSerial() == null) {
+        LOGGER.severe("Can't get Numato Serial");
+
         Boolean open = openRelay();
+        LOGGER.severe("Numato status: " + open);
+
         if (!open) {
           return builder.putFields("Unable to open relay", Value.newBuilder().setStringValue("error").build()).build();
         }
       }
 
-      final Struct.Builder builder = Struct.newBuilder();
       String serialCommand = "";
       String type = "write";
       if (command.containsKey("on")) {
