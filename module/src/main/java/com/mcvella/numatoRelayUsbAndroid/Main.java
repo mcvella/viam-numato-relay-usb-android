@@ -69,6 +69,7 @@ public class Main {
         Map<Common.ResourceName, Resource> dependencies) {
       super(config.getName());
 
+      // attempt to close on reconfigure.  note that connect is lazy and occurs when a doCommand() is issued
       if ( relay != null && relay.isOpen()) {
         try {
           relay.close();
@@ -158,19 +159,37 @@ public class Main {
       return true;
     }
 
+    private boolean ensureRelayOpen() {
+      Boolean needToConnect = false;
+
+      if (relay == null)
+      {
+        needToConnect = true;
+      }
+      else {
+          try {
+            relay.write("\r".getBytes(), 100);
+          } catch (IOException e) {
+            needToConnect = true;
+          }
+      }
+
+      if (needToConnect) {
+        Boolean open = openRelay();
+        if (!open) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     @Override
     public Struct doCommand(Map<String, Value> command) {
       final Struct.Builder builder = Struct.newBuilder();
 
-      if (relay == null || relay.getSerial() == null) {
-        LOGGER.severe("Can't get Numato Serial");
-
-        Boolean open = openRelay();
-        LOGGER.severe("Numato status: " + open);
-
-        if (!open) {
-          return builder.putFields("Unable to open relay", Value.newBuilder().setStringValue("error").build()).build();
-        }
+      if (!ensureRelayOpen()) {
+        LOGGER.severe("Unable to open Numato");
+        return builder.putFields("Unable to open relay", Value.newBuilder().setStringValue("error").build()).build();
       }
 
       String serialCommand = "";
