@@ -138,9 +138,9 @@ public class Main {
                   0, new Intent(ACTION_USB_PERMISSION), 0);
           manager.requestPermission(usbDevice, pendingIntent);
           
-          // this is a hack and means permissions must be accepted within 10 seconds of being asked
+          // this implies permissions must be accepted within 5 seconds of being asked
           try {
-            Thread.sleep(10000);
+            Thread.sleep(5000);
           } catch (InterruptedException e) {
             return false;
           }
@@ -168,7 +168,8 @@ public class Main {
       }
       else {
           try {
-            relay.write("\r".getBytes(), 100);
+            byte[] resp = new byte[64];
+            relay.read(resp, 100);
           } catch (IOException e) {
             needToConnect = true;
           }
@@ -201,29 +202,29 @@ public class Main {
       } else if (command.containsKey("read")) {
         serialCommand = "relay read " + command.get("read").getStringValue() + "\r";
         type = "read";
-      } else if (command.containsKey("reset")) {
-        serialCommand = "reset\r";
       }
+
+      LOGGER.info("Numato serial command" + serialCommand);
 
       if (type == "write") {
         try {
-          relay.write("\r".getBytes(), 100);
-          relay.write(serialCommand.getBytes(), 100);
+          relay.write(serialCommand.getBytes(), 500);
           return builder.putFields("serial command written", Value.newBuilder().setStringValue(serialCommand).build()).build();
         } catch (IOException e) {
-          return builder.putFields("serial write error sending", Value.newBuilder().setStringValue(serialCommand).build()).build();
+          return builder.putFields("serial write error", Value.newBuilder().setStringValue(serialCommand).build()).build();
         }
       } else {
         byte[] resp = new byte[64];
         try {
-          relay.write("\r".getBytes(), 100);
-          relay.write(serialCommand.getBytes(), 100);
+          relay.write(serialCommand.getBytes(), 1000);
           relay.read(resp, 100);
         } catch (IOException e) {
-          return builder.putFields("serial write error reading", Value.newBuilder().setStringValue(serialCommand).build()).build();
+          return builder.putFields("serial read error", Value.newBuilder().setStringValue(serialCommand).build()).build();
         }
         String response = new String(resp, StandardCharsets.UTF_8);
-        return builder.putFields("serial command read", Value.newBuilder().setStringValue(response).build()).build();
+        String rsplit[] = response.split("\\n\\r");
+
+        return builder.putFields("serial command read", Value.newBuilder().setStringValue(rsplit[1]).build()).build();
       }
     }
   }
