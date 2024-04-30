@@ -168,6 +168,8 @@ public class Main {
       }
       else {
           try {
+            // test if connection is still responding.
+            // note that the isOpen() command could not reliably tell us this
             byte[] resp = new byte[64];
             relay.read(resp, 100);
           } catch (IOException e) {
@@ -224,7 +226,7 @@ public class Main {
         String response = new String(resp, StandardCharsets.UTF_8);
         String rsplit[] = response.split("\\n\\r");
 
-        return builder.putFields("serial command read", Value.newBuilder().setStringValue(rsplit[1]).build()).build();
+        return builder.putFields("status", Value.newBuilder().setStringValue(rsplit[1]).build()).build();
       }
     }
   }
