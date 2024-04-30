@@ -1,0 +1,13 @@
+{
+  "module_id": "mcvella:numato-relay-usb-android",
+  "visibility": "public",
+  "url": "https://github.com/mcvella/viam-numato-relay-usb-android",
+  "description": "Viam modular component for Numato USB relays running on Android",
+  "models": [
+    {
+      "api": "rdk:component:generic",
+      "model": "mcvella:generic:numato-relay-usb-android"
+    }
+  ],
+  "entrypoint": "mod.sh"
+}
