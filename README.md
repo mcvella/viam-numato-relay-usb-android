@@ -84,3 +84,6 @@ If the key *read* is passed to DoCommand(), the a integer value representing the
 This will read and return the status for the specified relay, either "on" or "off".
 
 ## TODO
+
+Currently, when a Numato device is plugged-in, you must allow device access via the Android screen within 5 seconds of first DoCommand() call.
+This could be improved by adding fixed intent for the device in the module.
