@@ -171,8 +171,11 @@ public class Main {
             // test if connection is still responding.
             // note that the isOpen() command could not reliably tell us this
             byte[] resp = new byte[64];
+            relay.write("\r".getBytes(), 100);
             relay.read(resp, 100);
           } catch (IOException e) {
+            LOGGER.severe("Numato NEED TO CONNECT");
+
             needToConnect = true;
           }
       }
@@ -224,9 +227,11 @@ public class Main {
           return builder.putFields("serial read error", Value.newBuilder().setStringValue(serialCommand).build()).build();
         }
         String response = new String(resp, StandardCharsets.UTF_8);
-        String rsplit[] = response.split("\\n\\r");
+        String rsplit[] = response.split("\\n\\r?");
+        // if the relay was not yet used, default to "off"
+        String toReturn = rsplit.length > 1 ? rsplit[1] : "off";
 
-        return builder.putFields("status", Value.newBuilder().setStringValue(rsplit[1]).build()).build();
+        return builder.putFields("status", Value.newBuilder().setStringValue(toReturn).build()).build();
       }
     }
   }
