@@ -135,7 +135,7 @@ public class Main {
       else {
           // Request USB permission
           PendingIntent pendingIntent = PendingIntent.getBroadcast(cxt.getApplicationContext(),
-                  0, new Intent(ACTION_USB_PERMISSION), 0);
+                  0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
           manager.requestPermission(usbDevice, pendingIntent);
           
           // this implies permissions must be accepted within 5 seconds of being asked

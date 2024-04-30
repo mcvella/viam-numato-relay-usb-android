@@ -19,7 +19,7 @@ To use this module, follow these instructions to [add a module from the Viam Reg
 ## Configure
 
 > [!NOTE]  
-> Before configuring your mqtt-grpc service, you must [create a machine](https://docs.viam.com/manage/fleet/machines/#add-a-new-machine).
+> Before configuring your numato relay component, you must [create a machine](https://docs.viam.com/manage/fleet/machines/#add-a-new-machine).
 
 Navigate to the **Config** tab of your robot’s page in [the Viam app](https://app.viam.com/).
 Click on the **Components** subtab and click **Create**.
