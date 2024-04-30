@@ -198,11 +198,11 @@ public class Main {
       String serialCommand = "";
       String type = "write";
       if (command.containsKey("on")) {
-        serialCommand = "relay on " + command.get("on").getStringValue() + "\r";
+        serialCommand = "relay on " + command.get("on").getNumberValue() + "\r";
       } else if (command.containsKey("off")) {
-        serialCommand = "relay off " + command.get("off").getStringValue() + "\r";
+        serialCommand = "relay off " + command.get("off").getNumberValue() + "\r";
       } else if (command.containsKey("read")) {
-        serialCommand = "relay read " + command.get("read").getStringValue() + "\r";
+        serialCommand = "relay read " + command.get("read").getNumberValue() + "\r";
         type = "read";
       }
 

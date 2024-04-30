@@ -61,24 +61,26 @@ Example:
 
 ``` python
 # turn relay 0 on
-await relay.do_command({'on': '0'})
+await relay.do_command({'on': 0})
 # read the status of relay 1
-status = await relay.do_command({'read': "1"})
+status = await relay.do_command({'read': 1})
+# turn relay 1 on
+await relay.do_command({'off': 1})
 ```
 
 ### on
 
-If the key *on* is passed to DoCommand(), the a string value representing the index of a relay (starting with 0 for the first relay) is passed as the value.
+If the key *on* is passed to DoCommand(), the a integer value representing the index of a relay (starting with 0 for the first relay) is passed as the value.
 This will turn the specified relay on.
 
 ### off
 
-If the key *off* is passed to DoCommand(), the a string value representing the index of a relay (starting with 0 for the first relay) is passed as the value.
+If the key *off* is passed to DoCommand(), the a integer value representing the index of a relay (starting with 0 for the first relay) is passed as the value.
 This will turn the specified relay off.
 
 ### read
 
-If the key *read* is passed to DoCommand(), the a string value representing the index of a relay (starting with 0 for the first relay) is passed as the value.
+If the key *read* is passed to DoCommand(), the a integer value representing the index of a relay (starting with 0 for the first relay) is passed as the value.
 This will read and return the status for the specified relay, either "on" or "off".
 
 ## TODO
